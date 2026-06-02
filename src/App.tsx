@@ -14,13 +14,11 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est déjà connecté
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
-    // Écouter les changements de connexion
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()
@@ -40,7 +38,6 @@ function App() {
 
   return (
     <div className="app">
-
       {tab === 'live'    && <Live    goTab={setTab} />}
       {tab === 'express' && <Express goTab={setTab} />}
 
@@ -70,7 +67,6 @@ function App() {
           </button>
         </nav>
       )}
-
     </div>
   )
 }
