@@ -1,0 +1,74 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  background: #eee;
+}
+
+.app {
+  max-width: 390px;
+  height: 100vh;
+  margin: 0 auto;
+  background: #fafafa;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.page {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 65px;
+  position: relative;
+}
+
+.tabbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 65px;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-top: 1px solid #f0eded;
+  z-index: 100;
+}
+
+.tabbar button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 8px;
+  color: #ccc;
+  font-weight: 600;
+  padding-bottom: 8px;
+  height: 100%;
+}
+
+.tabbar button.on { color: #D94F45; }
+.tabbar button .ico { font-size: 20px; }
+.sell-btn { flex: 1; }
+
+.sell-ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #D94F45;
+  color: #fff;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -20px;
+  box-shadow: 0 4px 14px rgba(217,79,69,.45);
+  flex-shrink: 0;
+}
