@@ -8,6 +8,7 @@ export default function Auth({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -18,13 +19,37 @@ export default function Auth({ onLogin }: { onLogin: () => void }) {
     setSuccess('')
 
     if (mode === 'signup') {
-      const { error } = await supabase.auth.signUp({
+      // Vérifier si le pseudo est déjà pris
+      if (username) {
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username.toLowerCase())
+          .single()
+        if (existing) {
+          setError('Ce pseudo est déjà pris, choisissez-en un autre')
+          setLoading(false)
+          return
+        }
+      }
+
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } }
+        options: { data: { full_name: name, username: username.toLowerCase() } }
       })
-      if (error) setError(error.message)
-      else setSuccess('Compte créé ! Vérifiez votre email.')
+
+      if (error) {
+        setError(error.message)
+      } else if (data.user) {
+        // Mettre à jour le profil avec le username
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          full_name: name,
+          username: username.toLowerCase(),
+        })
+        setSuccess('Compte créé ! Vérifiez votre email puis connectez-vous.')
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setError('Email ou mot de passe incorrect')
@@ -56,12 +81,27 @@ export default function Auth({ onLogin }: { onLogin: () => void }) {
           ))}
         </div>
 
-        {/* CHAMPS */}
+        {/* CHAMPS INSCRIPTION */}
         {mode==='signup' && (
-          <div style={{ marginBottom:14 }}>
-            <label style={lbl}>Nom complet</label>
-            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Ex : Jean Dupont" style={inp}/>
-          </div>
+          <>
+            <div style={{ marginBottom:14 }}>
+              <label style={lbl}>Nom complet</label>
+              <input value={name} onChange={e=>setName(e.target.value)} placeholder="Ex : Jean Dupont" style={inp}/>
+            </div>
+            <div style={{ marginBottom:14 }}>
+              <label style={lbl}>Pseudo</label>
+              <div style={{ position:'relative' }}>
+                <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', fontSize:13, color:'#aaa' }}>@</span>
+                <input
+                  value={username}
+                  onChange={e=>setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase())}
+                  placeholder="votre_pseudo"
+                  style={{ ...inp, paddingLeft:26 }}
+                />
+              </div>
+              <div style={{ fontSize:9, color:'#aaa', marginTop:3 }}>Lettres, chiffres et _ uniquement</div>
+            </div>
+          </>
         )}
 
         <div style={{ marginBottom:14 }}>
