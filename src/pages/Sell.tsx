@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 
 const P = '#D94F45'
@@ -19,49 +19,45 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
   const [photoUrl, setPhotoUrl] = useState('')
   const [photoPreview, setPhotoPreview] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [mesArticles, setMesArticles] = useState<any[]>([])
+  const [statsLoading, setStatsLoading] = useState(false)
 
-  const tabs = [
-    { k:'depot',      l:'+ Déposer' },
-    { k:'lives',      l:'📅 Lives' },
-    { k:'coupons',    l:'🎟️ Coupons' },
-    { k:'parrainage', l:'🎁 Parrainage' },
-    { k:'ventes',     l:'Ventes' },
-    { k:'revenus',    l:'Revenus' },
-  ]
+  useEffect(() => {
+    if (onglet === 'ventes') loadMesArticles()
+  }, [onglet])
+
+  async function loadMesArticles() {
+    setStatsLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data } = await supabase
+      .from('items')
+      .select('*')
+      .eq('seller_id', user?.id)
+      .order('created_at', { ascending: false })
+    if (data) setMesArticles(data)
+    setStatsLoading(false)
+  }
 
   async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-
-    // Preview local
     const reader = new FileReader()
     reader.onload = (ev) => setPhotoPreview(ev.target?.result as string)
     reader.readAsDataURL(file)
-
-    // Upload vers Supabase Storage
     setUploading(true)
     const fileName = `${Date.now()}-${file.name}`
-    const { error } = await supabase.storage
-      .from('images')
-      .upload(fileName, file)
-
-    if (error) {
-      alert('Erreur upload : ' + error.message)
-      setUploading(false)
-      return
-    }
-
-    // Récupérer l'URL publique
+    const { error } = await supabase.storage.from('images').upload(fileName, file)
+    if (error) { alert('Erreur upload : ' + error.message); setUploading(false); return }
     const { data } = supabase.storage.from('images').getPublicUrl(fileName)
     setPhotoUrl(data.publicUrl)
     setUploading(false)
   }
 
   async function publier() {
-    const titleEl    = document.getElementById('titre')    as HTMLInputElement
-    const prixEl     = document.getElementById('prix')     as HTMLInputElement
-    const catEl      = document.getElementById('categorie')as HTMLSelectElement
-    const descEl     = document.getElementById('desc')     as HTMLTextAreaElement
+    const titleEl = document.getElementById('titre') as HTMLInputElement
+    const prixEl  = document.getElementById('prix')  as HTMLInputElement
+    const catEl   = document.getElementById('categorie') as HTMLSelectElement
+    const descEl  = document.getElementById('desc')  as HTMLTextAreaElement
 
     const title    = titleEl?.value?.trim()
     const price    = parseFloat(prixEl?.value)
@@ -72,6 +68,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
     if (!price || price <= 0) { alert('Ajoutez un prix valide'); return }
 
     setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase.from('items').insert({
       title,
       description: desc || '',
@@ -82,6 +79,9 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
       stock: 1,
       status: 'active',
       type: selD || 'fixed',
+      seller_id: user?.id,
+      views: 0,
+      favorites: 0,
     })
     setLoading(false)
 
@@ -95,6 +95,15 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
     }
   }
 
+  const tabs = [
+    { k:'depot',      l:'+ Déposer' },
+    { k:'lives',      l:'📅 Lives' },
+    { k:'coupons',    l:'🎟️ Coupons' },
+    { k:'parrainage', l:'🎁 Parrainage' },
+    { k:'ventes',     l:'Ventes' },
+    { k:'revenus',    l:'Revenus' },
+  ]
+
   return (
     <div style={{ paddingBottom:80 }}>
 
@@ -106,7 +115,11 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
         <h2 style={{ fontSize:16, fontWeight:800, color:'#fff', marginBottom:3 }}>Mon espace vendeur</h2>
         <p style={{ fontSize:11, color:'rgba(255,255,255,.75)' }}>Gérez vos articles et revenus</p>
         <div style={{ display:'flex', gap:8, marginTop:10 }}>
-          {[['2','En cours'],['332€','Ce mois'],['4.9⭐','Note']].map(([n,l]) => (
+          {[
+            [String(mesArticles.filter(a=>a.status==='active').length), 'En vente'],
+            [String(mesArticles.reduce((s,a)=>s+(a.views||0),0)), 'Vues total'],
+            [String(mesArticles.reduce((s,a)=>s+(a.favorites||0),0)), 'Favoris'],
+          ].map(([n,l]) => (
             <div key={l} style={{ flex:1, background:'rgba(255,255,255,.15)', borderRadius:10, padding:8, textAlign:'center' }}>
               <div style={{ fontSize:15, fontWeight:800, color:'#fff' }}>{n}</div>
               <div style={{ fontSize:9, color:'rgba(255,255,255,.7)', marginTop:1 }}>{l}</div>
@@ -131,8 +144,6 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           <div>
             <div style={card}>
               <div style={cardTtl}>📸 Photo</div>
-
-              {/* Preview photo */}
               {photoPreview ? (
                 <div style={{ position:'relative', marginBottom:8 }}>
                   <img src={photoPreview} alt="preview" style={{ width:'100%', height:160, objectFit:'cover', borderRadius:10 }}/>
@@ -149,15 +160,12 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                   <button onClick={()=>{ setPhotoPreview(''); setPhotoUrl('') }} style={{ position:'absolute', top:8, left:8, background:'rgba(0,0,0,.5)', color:'#fff', border:'none', borderRadius:'50%', width:24, height:24, cursor:'pointer', fontSize:12 }}>✕</button>
                 </div>
               ) : (
-                <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-                  <label style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'14px 6px', borderRadius:10, border:'1.5px dashed #F5A49F', background:'#FDEDEC', cursor:'pointer' }}>
-                    <span style={{ fontSize:24 }}>📷</span>
-                    <span style={{ fontSize:9, fontWeight:600, color:'#A83228' }}>Ajouter une photo</span>
-                    <input type="file" accept="image/*" onChange={handlePhoto} style={{ display:'none' }}/>
-                  </label>
-                </div>
+                <label style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'14px 6px', borderRadius:10, border:'1.5px dashed #F5A49F', background:'#FDEDEC', cursor:'pointer', marginBottom:8 }}>
+                  <span style={{ fontSize:24 }}>📷</span>
+                  <span style={{ fontSize:9, fontWeight:600, color:'#A83228' }}>Ajouter une photo</span>
+                  <input type="file" accept="image/*" onChange={handlePhoto} style={{ display:'none' }}/>
+                </label>
               )}
-
               <div style={fl}>
                 <label style={lbl}>Titre</label>
                 <input id="titre" placeholder="Ex : Nike Air Max 90" style={inp}/>
@@ -284,22 +292,78 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
         {/* VENTES */}
         {onglet==='ventes' && (
           <div>
-            {[
-              { emoji:'🎸', title:'Guitare vintage 1969', sub:'En vente · Prix fixe', price:'340 €', status:'live' },
-              { emoji:'👜', title:'Sac cuir artisanal',   sub:'En vente · Prix fixe', price:'180 €', status:'live' },
-              { emoji:'🖼️', title:'Tableau aquarelle',    sub:'Vendu',                price:'210 €', status:'sold' },
-            ].map((s,i) => (
-              <div key={i} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-                <div style={{ width:42, height:42, borderRadius:8, background:'#FDEDEC', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>{s.emoji}</div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{s.title}</div>
-                  <div style={{ fontSize:10, color:'#aaa', marginTop:2 }}>{s.sub}</div>
+            {statsLoading && <div style={{ textAlign:'center', padding:30, color:'#aaa' }}>Chargement…</div>}
+
+            {!statsLoading && mesArticles.length === 0 && (
+              <div style={{ textAlign:'center', padding:30 }}>
+                <div style={{ fontSize:32, marginBottom:10 }}>📦</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'#111', marginBottom:6 }}>Aucun article en vente</div>
+                <div style={{ fontSize:11, color:'#aaa', marginBottom:16 }}>Publiez votre premier article !</div>
+                <button onClick={()=>setOnglet('depot')} style={{ padding:'10px 20px', background:P, color:'#fff', border:'none', borderRadius:20, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                  + Déposer un article
+                </button>
+              </div>
+            )}
+
+            {mesArticles.map((it, i) => (
+              <div key={i} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:14, overflow:'hidden', marginBottom:10 }}>
+                <div style={{ display:'flex', gap:10, padding:'10px 12px' }}>
+                  {/* PHOTO */}
+                  <div style={{ width:60, height:60, borderRadius:10, background:'#FDEDEC', overflow:'hidden', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>
+                    {it.image_url ? (
+                      <img src={it.image_url} alt={it.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                    ) : (
+                      it.emoji
+                    )}
+                  </div>
+                  {/* INFOS */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{it.title}</div>
+                    <div style={{ fontSize:10, color:'#aaa', marginTop:2 }}>{it.category}</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:P, marginTop:3 }}>{it.price?.toLocaleString('fr-FR')} €</div>
+                  </div>
+                  {/* STATUS */}
+                  <div style={{ flexShrink:0, textAlign:'right' }}>
+                    <span style={{ fontSize:9, padding:'3px 8px', borderRadius:10, fontWeight:600, display:'inline-block', background: it.status==='active'?'#FDEDEC':'#f0f0f0', color: it.status==='active'?P:'#888' }}>
+                      {it.status==='active' ? '● En vente' : 'Inactif'}
+                    </span>
+                    <div style={{ fontSize:9, color:'#aaa', marginTop:4 }}>
+                      {it.type==='fixed' ? '🏷️ Prix fixe' : it.type==='express' ? '⚡ Express' : '📡 Live'}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ textAlign:'right', flexShrink:0 }}>
-                  <div style={{ fontSize:12, fontWeight:800, color:P }}>{s.price}</div>
-                  <span style={{ fontSize:9, padding:'2px 7px', borderRadius:10, fontWeight:600, display:'inline-block', marginTop:3, background: s.status==='live'?'#FDEDEC':'#E8F5E9', color: s.status==='live'?P:'#2E7D32' }}>
-                    {s.status==='live' ? '● En vente' : '✓ Vendu'}
-                  </span>
+
+                {/* STATS */}
+                <div style={{ display:'flex', borderTop:'0.5px solid #f5f5f5', padding:'8px 12px', gap:16 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <span style={{ fontSize:13 }}>👁</span>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:800, color:'#111' }}>{it.views || 0}</div>
+                      <div style={{ fontSize:8, color:'#aaa' }}>vues</div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <span style={{ fontSize:13 }}>🤍</span>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:800, color:'#111' }}>{it.favorites || 0}</div>
+                      <div style={{ fontSize:8, color:'#aaa' }}>favoris</div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <span style={{ fontSize:13 }}>📅</span>
+                    <div>
+                      <div style={{ fontSize:10, fontWeight:600, color:'#111' }}>{new Date(it.created_at).toLocaleDateString('fr-FR')}</div>
+                      <div style={{ fontSize:8, color:'#aaa' }}>publié le</div>
+                    </div>
+                  </div>
+                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                    <button style={{ padding:'5px 10px', borderRadius:10, border:`0.5px solid ${P}`, background:'#fff', color:P, fontSize:9, fontWeight:700, cursor:'pointer' }}>
+                      Modifier
+                    </button>
+                    <button style={{ padding:'5px 10px', borderRadius:10, border:'0.5px solid #f0eded', background:'#fff', color:'#aaa', fontSize:9, fontWeight:700, cursor:'pointer' }}>
+                      Retirer
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -324,15 +388,6 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                   </div>
                 ))}
               </div>
-            </div>
-            <div style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:13 }}>
-              <div style={{ fontSize:11, fontWeight:600, color:'#aaa', marginBottom:7 }}>RÉSUMÉ</div>
-              {[['Articles vendus','7'],['Articles en vente','2'],['Taux de vente','87%'],['Note vendeur','⭐ 4.9']].map(([l,v]) => (
-                <div key={l} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'5px 0', borderBottom:'0.5px solid #f5f0f0' }}>
-                  <span style={{ color:'#bbb' }}>{l}</span>
-                  <span style={{ fontWeight:700, color:P }}>{v}</span>
-                </div>
-              ))}
             </div>
           </div>
         )}
