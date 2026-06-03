@@ -3,7 +3,7 @@ import { supabase } from '../supabase'
 
 const P = '#D94F45'
 
-export default function Me({ goTab }: { goTab: (t: string) => void }) {
+export default function Me({ goTab, onEditProfile }: { goTab: (t: string) => void, onEditProfile: () => void }) {
   const [profile, setProfile] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [stats, setStats] = useState({ articles: 0, vues: 0, favoris: 0 })
@@ -56,11 +56,11 @@ export default function Me({ goTab }: { goTab: (t: string) => void }) {
 
       {/* COUVERTURE */}
       <div style={{ height:110, background:`linear-gradient(135deg,${P},#b03028)`, position:'relative' }}>
-        <div style={{ position:'absolute', bottom:7, right:10, background:'rgba(0,0,0,.45)', border:'none', borderRadius:20, padding:'4px 10px', fontSize:10, fontWeight:600, color:'#fff', cursor:'pointer' }}>
+        <button onClick={onEditProfile} style={{ position:'absolute', bottom:7, right:10, background:'rgba(0,0,0,.45)', border:'none', borderRadius:20, padding:'4px 10px', fontSize:10, fontWeight:600, color:'#fff', cursor:'pointer' }}>
           📷 Modifier
-        </div>
+        </button>
         <div style={{ position:'absolute', bottom:-26, left:14 }}>
-          <div style={{ width:52, height:52, borderRadius:'50%', background:'#fff', border:'3px solid #fff', boxShadow:'0 2px 8px rgba(0,0,0,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:700, color:P, cursor:'pointer', position:'relative', overflow:'hidden' }}>
+          <div onClick={onEditProfile} style={{ width:52, height:52, borderRadius:'50%', background:'#fff', border:'3px solid #fff', boxShadow:'0 2px 8px rgba(0,0,0,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:700, color:P, cursor:'pointer', position:'relative', overflow:'hidden' }}>
             {profile?.avatar_url ? <img src={profile.avatar_url} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : initials}
             <div style={{ position:'absolute', bottom:0, right:0, width:16, height:16, background:P, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, border:'2px solid #fff' }}>📷</div>
           </div>
@@ -104,7 +104,7 @@ export default function Me({ goTab }: { goTab: (t: string) => void }) {
           { ico:'🎟️', lbl:'Coupons',         sub:'Gérer mes coupons',                                   action: ()=>goTab('sell') },
           { ico:'🎁', lbl:'Parrainage',      sub:'Invitez vos amis',                                    action: ()=>goTab('sell') },
           { ico:'💬', lbl:'Messages',        sub:'Vos conversations',                                   action: ()=>{} },
-          { ico:'✏️', lbl:'Modifier profil', sub:'Nom, pseudo, bio, photo',                             action: ()=>{} },
+          { ico:'✏️', lbl:'Modifier profil', sub:'Nom, pseudo, bio, photo',                             action: onEditProfile },
           { ico:'🔒', lbl:'Confidentialité', sub:privLabel,                                             action: togglePrivacy },
           { ico:'⚙️', lbl:'Paramètres',      sub:'Compte & sécurité',                                   action: ()=>{} },
           { ico:'🚪', lbl:'Se déconnecter',  sub:'',                                                    action: async ()=>{ await supabase.auth.signOut() } },
