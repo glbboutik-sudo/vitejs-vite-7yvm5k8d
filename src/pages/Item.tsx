@@ -11,8 +11,12 @@ export default function Item({ item, goBack }: { item: any, goBack: () => void }
       </div>
 
       {/* PHOTO */}
-      <div style={{ height:260, background:'#FDEDEC', display:'flex', alignItems:'center', justifyContent:'center', fontSize:80, position:'relative' }}>
-        {item.emoji || '📦'}
+      <div style={{ height:260, background:'#FDEDEC', display:'flex', alignItems:'center', justifyContent:'center', fontSize:80, position:'relative', overflow:'hidden' }}>
+        {item.image_url ? (
+          <img src={item.image_url} alt={item.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+        ) : (
+          <span>{item.emoji || '📦'}</span>
+        )}
         <div style={{ position:'absolute', top:0, left:0, right:0, height:4, background:P }}/>
         <div style={{ position:'absolute', top:12, right:12, background:'#fff', borderRadius:20, padding:'4px 10px', fontSize:10, fontWeight:700, color:'#2E7D32' }}>
           ✓ Disponible

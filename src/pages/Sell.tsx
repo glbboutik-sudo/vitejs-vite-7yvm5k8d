@@ -13,9 +13,12 @@ const emojiMap: Record<string, string> = {
 
 export default function Sell({ goTab }: { goTab: (t: string) => void }) {
   const [onglet, setOnglet] = useState('depot')
-  const [selD, setSelD] = useState('')
+  const [selD, setSelD] = useState('fixed')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState('')
+  const [photoPreview, setPhotoPreview] = useState('')
+  const [uploading, setUploading] = useState(false)
 
   const tabs = [
     { k:'depot',      l:'+ Déposer' },
@@ -26,15 +29,43 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
     { k:'revenus',    l:'Revenus' },
   ]
 
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Preview local
+    const reader = new FileReader()
+    reader.onload = (ev) => setPhotoPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+
+    // Upload vers Supabase Storage
+    setUploading(true)
+    const fileName = `${Date.now()}-${file.name}`
+    const { error } = await supabase.storage
+      .from('images')
+      .upload(fileName, file)
+
+    if (error) {
+      alert('Erreur upload : ' + error.message)
+      setUploading(false)
+      return
+    }
+
+    // Récupérer l'URL publique
+    const { data } = supabase.storage.from('images').getPublicUrl(fileName)
+    setPhotoUrl(data.publicUrl)
+    setUploading(false)
+  }
+
   async function publier() {
-    const titleEl    = document.getElementById('titre')       as HTMLInputElement
-    const prixEl     = document.getElementById('prix')        as HTMLInputElement
-    const categorieEl= document.getElementById('categorie')   as HTMLSelectElement
-    const descEl     = document.getElementById('desc')        as HTMLTextAreaElement
+    const titleEl    = document.getElementById('titre')    as HTMLInputElement
+    const prixEl     = document.getElementById('prix')     as HTMLInputElement
+    const catEl      = document.getElementById('categorie')as HTMLSelectElement
+    const descEl     = document.getElementById('desc')     as HTMLTextAreaElement
 
     const title    = titleEl?.value?.trim()
     const price    = parseFloat(prixEl?.value)
-    const category = categorieEl?.value
+    const category = catEl?.value
     const desc     = descEl?.value?.trim()
 
     if (!title)           { alert('Ajoutez un titre');       return }
@@ -47,6 +78,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
       price,
       category,
       emoji: emojiMap[category] || '📦',
+      image_url: photoUrl || null,
       stock: 1,
       status: 'active',
       type: selD || 'fixed',
@@ -57,6 +89,8 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
       alert('Erreur : ' + error.message)
     } else {
       setSuccess(true)
+      setPhotoUrl('')
+      setPhotoPreview('')
       setTimeout(() => { setSuccess(false); setOnglet('ventes') }, 2000)
     }
   }
@@ -90,30 +124,47 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
         ))}
       </div>
 
-      {/* CONTENU */}
       <div style={{ padding:'12px 14px' }}>
 
         {/* DÉPOSER */}
         {onglet==='depot' && (
           <div>
             <div style={card}>
-              <div style={cardTtl}>📸 Photos & titre</div>
-              <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-                {[['📷','Caméra'],['🖼️','Galerie']].map(([ico,lbl]) => (
-                  <label key={lbl} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 6px', borderRadius:10, border:'1.5px dashed #F5A49F', background:'#FDEDEC', cursor:'pointer' }}>
-                    <span style={{ fontSize:18 }}>{ico}</span>
-                    <span style={{ fontSize:9, fontWeight:600, color:'#A83228' }}>{lbl}</span>
-                    <input type="file" accept="image/*" style={{ display:'none' }}/>
+              <div style={cardTtl}>📸 Photo</div>
+
+              {/* Preview photo */}
+              {photoPreview ? (
+                <div style={{ position:'relative', marginBottom:8 }}>
+                  <img src={photoPreview} alt="preview" style={{ width:'100%', height:160, objectFit:'cover', borderRadius:10 }}/>
+                  {uploading && (
+                    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.5)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:12, fontWeight:700 }}>
+                      Upload en cours…
+                    </div>
+                  )}
+                  {!uploading && photoUrl && (
+                    <div style={{ position:'absolute', top:8, right:8, background:'#2E7D32', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:10 }}>
+                      ✓ Uploadée
+                    </div>
+                  )}
+                  <button onClick={()=>{ setPhotoPreview(''); setPhotoUrl('') }} style={{ position:'absolute', top:8, left:8, background:'rgba(0,0,0,.5)', color:'#fff', border:'none', borderRadius:'50%', width:24, height:24, cursor:'pointer', fontSize:12 }}>✕</button>
+                </div>
+              ) : (
+                <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+                  <label style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'14px 6px', borderRadius:10, border:'1.5px dashed #F5A49F', background:'#FDEDEC', cursor:'pointer' }}>
+                    <span style={{ fontSize:24 }}>📷</span>
+                    <span style={{ fontSize:9, fontWeight:600, color:'#A83228' }}>Ajouter une photo</span>
+                    <input type="file" accept="image/*" onChange={handlePhoto} style={{ display:'none' }}/>
                   </label>
-                ))}
-              </div>
+                </div>
+              )}
+
               <div style={fl}>
                 <label style={lbl}>Titre</label>
                 <input id="titre" placeholder="Ex : Nike Air Max 90" style={inp}/>
               </div>
               <div style={fl}>
                 <label style={lbl}>Description</label>
-                <textarea id="desc" placeholder="Décrivez votre article…" style={{ ...inp, height:48, resize:'none' } as React.CSSProperties}/>
+                <textarea id="desc" placeholder="Décrivez votre article…" style={{ ...inp, height:60, resize:'none' } as React.CSSProperties}/>
               </div>
             </div>
 
@@ -152,12 +203,8 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
               </div>
             )}
 
-            <button
-              onClick={publier}
-              disabled={loading}
-              style={{ width:'100%', padding:11, background: loading ? '#ccc' : P, color:'#fff', border:'none', borderRadius:20, fontSize:13, fontWeight:800, cursor: loading ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}
-            >
-              {loading ? 'Publication…' : '🚀 Publier l\'article'}
+            <button onClick={publier} disabled={loading || uploading} style={{ width:'100%', padding:11, background: loading||uploading ? '#ccc' : P, color:'#fff', border:'none', borderRadius:20, fontSize:13, fontWeight:800, cursor: loading||uploading ? 'not-allowed' : 'pointer' }}>
+              {loading ? 'Publication…' : uploading ? 'Upload photo…' : '🚀 Publier l\'article'}
             </button>
           </div>
         )}
@@ -170,7 +217,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
             </button>
             {[
               { emoji:'🎸', title:'Vente instruments vintage', date:'Sam 31 mai · 20h00', live:false },
-              { emoji:'💻', title:'Tech & gadgets',            date:"Aujourd'hui · 18h00", live:true  },
+              { emoji:'💻', title:'Tech & gadgets', date:"Aujourd'hui · 18h00", live:true },
             ].map((l,i) => (
               <div key={i} style={{ background:'#111', borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
                 <div style={{ width:38, height:38, borderRadius:10, background:`linear-gradient(135deg,${P},#b03028)`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:17 }}>{l.emoji}</div>
@@ -181,7 +228,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                     {l.live ? '● En direct' : '⏳ Programmé'}
                   </span>
                 </div>
-                <button onClick={()=>goTab('live')} style={{ padding:'5px 10px', background:P, border:'none', borderRadius:20, fontSize:10, fontWeight:700, color:'#fff', cursor:'pointer' }}>
+                <button style={{ padding:'5px 10px', background:P, border:'none', borderRadius:20, fontSize:10, fontWeight:700, color:'#fff', cursor:'pointer' }}>
                   {l.live ? 'Rejoindre' : 'Modifier'}
                 </button>
               </div>
@@ -231,23 +278,6 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                 </div>
               ))}
             </div>
-            <div style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:12 }}>
-              <div style={{ fontSize:11, fontWeight:700, color:'#111', marginBottom:8 }}>Mes filleuls</div>
-              {[
-                { name:'Sophie Martin', date:'Il y a 2 jours', color:'#D94F45' },
-                { name:'Lucas Dupont',  date:'Il y a 5 jours', color:'#e6732a' },
-                { name:'Marie Petit',   date:'Il y a 2 sem.',  color:'#7c3aed' },
-              ].map((f,i) => (
-                <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom:'0.5px solid #f5f0f0' }}>
-                  <div style={{ width:28, height:28, borderRadius:'50%', background:f.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#fff' }}>{f.name[0]}</div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:'#111' }}>{f.name}</div>
-                    <div style={{ fontSize:10, color:'#aaa' }}>{f.date}</div>
-                  </div>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#2E7D32' }}>+5€</div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -258,7 +288,6 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
               { emoji:'🎸', title:'Guitare vintage 1969', sub:'En vente · Prix fixe', price:'340 €', status:'live' },
               { emoji:'👜', title:'Sac cuir artisanal',   sub:'En vente · Prix fixe', price:'180 €', status:'live' },
               { emoji:'🖼️', title:'Tableau aquarelle',    sub:'Vendu',                price:'210 €', status:'sold' },
-              { emoji:'⌚', title:'Montre mécanique',     sub:'Expiré',               price:'0 €',   status:'end'  },
             ].map((s,i) => (
               <div key={i} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
                 <div style={{ width:42, height:42, borderRadius:8, background:'#FDEDEC', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>{s.emoji}</div>
@@ -268,8 +297,8 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                 </div>
                 <div style={{ textAlign:'right', flexShrink:0 }}>
                   <div style={{ fontSize:12, fontWeight:800, color:P }}>{s.price}</div>
-                  <span style={{ fontSize:9, padding:'2px 7px', borderRadius:10, fontWeight:600, display:'inline-block', marginTop:3, background: s.status==='live'?'#FDEDEC':s.status==='sold'?'#E8F5E9':'#f0f0f0', color: s.status==='live'?P:s.status==='sold'?'#2E7D32':'#888' }}>
-                    {s.status==='live' ? '● En vente' : s.status==='sold' ? '✓ Vendu' : 'Expiré'}
+                  <span style={{ fontSize:9, padding:'2px 7px', borderRadius:10, fontWeight:600, display:'inline-block', marginTop:3, background: s.status==='live'?'#FDEDEC':'#E8F5E9', color: s.status==='live'?P:'#2E7D32' }}>
+                    {s.status==='live' ? '● En vente' : '✓ Vendu'}
                   </span>
                 </div>
               </div>

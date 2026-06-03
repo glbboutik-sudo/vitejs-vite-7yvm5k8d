@@ -31,8 +31,12 @@ export default function Home({ goTab, onItemClick }: { goTab: (t: string) => voi
 
   const cardHtml = (it: any, small = false) => (
     <div key={it.id} onClick={() => onItemClick(it)} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:14, overflow:'hidden', cursor:'pointer', ...(small ? { minWidth:130, flexShrink:0 } : {}) }}>
-      <div style={{ height: small ? 75 : 90, display:'flex', alignItems:'center', justifyContent:'center', background:'#FDEDEC', fontSize: small ? 26 : 30, position:'relative' }}>
-        {it.emoji}
+      <div style={{ height: small ? 75 : 90, display:'flex', alignItems:'center', justifyContent:'center', background:'#FDEDEC', fontSize: small ? 26 : 30, position:'relative', overflow:'hidden' }}>
+        {it.image_url ? (
+          <img src={it.image_url} alt={it.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+        ) : (
+          <span>{it.emoji}</span>
+        )}
         <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:P }}/>
       </div>
       <div style={{ padding: small ? '6px 8px 8px' : '7px 9px 9px' }}>
