@@ -8,12 +8,14 @@ import Express from './pages/Express'
 import Sell from './pages/Sell'
 import Me from './pages/Me'
 import Item from './pages/Item'
+import Categories from './pages/Categories'
 
 function App() {
   const [tab, setTab] = useState('home')
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedItem, setSelectedItem] = useState<any>(null)
+  const [showCategories, setShowCategories] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -50,8 +52,18 @@ function App() {
         </div>
       )}
 
+      {/* Page catégories */}
+      {showCategories && !selectedItem && (
+        <div style={{ position:'absolute', inset:0, zIndex:140, overflowY:'auto', background:'#fafafa' }}>
+          <Categories
+            goBack={() => setShowCategories(false)}
+            onItemClick={(item) => { setSelectedItem(item) }}
+          />
+        </div>
+      )}
+
       <div className="page" style={{ display: tab==='live' || tab==='express' ? 'none' : 'block' }}>
-        {tab === 'home' && <Home goTab={setTab} onItemClick={setSelectedItem} />}
+        {tab === 'home' && <Home goTab={setTab} onItemClick={setSelectedItem} onSearchClick={() => setShowCategories(true)} />}
         {tab === 'sell' && <Sell goTab={setTab} />}
         {tab === 'me'   && <Me   goTab={setTab} />}
       </div>

@@ -10,7 +10,7 @@ const streams = [
   { name:'PhotoPro',    emoji:'📷', bg:'#05080f', price:890, viewers:312 },
 ]
 
-export default function Home({ goTab, onItemClick }: { goTab: (t: string) => void, onItemClick: (item: any) => void }) {
+export default function Home({ goTab, onItemClick, onSearchClick }: { goTab: (t: string) => void, onItemClick: (item: any) => void, onSearchClick: () => void }) {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -59,16 +59,25 @@ export default function Home({ goTab, onItemClick }: { goTab: (t: string) => voi
             <div style={avatarStyle}>JD</div>
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,.15)', borderRadius:22, padding:'0 13px', border:'1px solid rgba(255,255,255,.25)' }}>
+        {/* BARRE DE RECHERCHE — ouvre la page catégories */}
+        <div onClick={onSearchClick} style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,.15)', borderRadius:22, padding:'0 13px', border:'1px solid rgba(255,255,255,.25)', cursor:'pointer' }}>
           <span style={{ color:'rgba(255,255,255,.7)' }}>🔍</span>
-          <input placeholder="Rechercher articles, vendeurs…" style={{ flex:1, border:'none', background:'transparent', fontSize:12, color:'#fff', padding:'10px 0', outline:'none' }}/>
+          <div style={{ flex:1, fontSize:12, color:'rgba(255,255,255,.7)', padding:'10px 0' }}>Rechercher articles, vendeurs…</div>
+          <span style={{ fontSize:10, color:'rgba(255,255,255,.5)' }}>Catégories →</span>
         </div>
       </div>
 
-      {/* CATÉGORIES */}
+      {/* CATÉGORIES RAPIDES */}
       <div style={{ display:'flex', gap:5, padding:'10px 14px', overflowX:'auto', background:'#fff', borderBottom:'0.5px solid #f0eded' }}>
-        {['Pour toi','Art','Mode','Tech','Déco','Musique'].map((c,i) => (
-          <button key={c} style={{ padding:'5px 12px', borderRadius:20, fontSize:11, fontWeight:600, border:'none', cursor:'pointer', whiteSpace:'nowrap', background:i===0?P:'#f5f5f5', color:i===0?'#fff':'#999' }}>{c}</button>
+        {[
+          { l:'Pour toi', k:'' },
+          { l:'🎨 Art',    k:'art' },
+          { l:'👜 Mode',   k:'mode' },
+          { l:'💻 Tech',   k:'tech' },
+          { l:'🪑 Déco',   k:'deco' },
+          { l:'🎸 Musique',k:'musique' },
+        ].map((c,i) => (
+          <button key={c.l} onClick={onSearchClick} style={{ padding:'5px 12px', borderRadius:20, fontSize:11, fontWeight:600, border:'none', cursor:'pointer', whiteSpace:'nowrap', background:i===0?P:'#f5f5f5', color:i===0?'#fff':'#999' }}>{c.l}</button>
         ))}
       </div>
 
