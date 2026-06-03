@@ -23,7 +23,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
   const [statsLoading, setStatsLoading] = useState(false)
 
   useEffect(() => {
-    if (onglet === 'ventes') loadMesArticles()
+    if (onglet === 'annonces') loadMesArticles()
   }, [onglet])
 
   async function loadMesArticles() {
@@ -64,45 +64,47 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
     const category = catEl?.value
     const desc     = descEl?.value?.trim()
 
-    if (!title)           { alert('Ajoutez un titre');       return }
+    if (!title)               { alert('Ajoutez un titre');       return }
     if (!price || price <= 0) { alert('Ajoutez un prix valide'); return }
 
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase.from('items').insert({
-      title,
-      description: desc || '',
-      price,
-      category,
+      title, description: desc || '', price, category,
       emoji: emojiMap[category] || '📦',
       image_url: photoUrl || null,
-      stock: 1,
-      status: 'active',
+      stock: 1, status: 'active',
       type: selD || 'fixed',
       seller_id: user?.id,
-      views: 0,
-      favorites: 0,
+      views: 0, favorites: 0,
     })
     setLoading(false)
-
-    if (error) {
-      alert('Erreur : ' + error.message)
-    } else {
+    if (error) { alert('Erreur : ' + error.message) }
+    else {
       setSuccess(true)
-      setPhotoUrl('')
-      setPhotoPreview('')
-      setTimeout(() => { setSuccess(false); setOnglet('ventes') }, 2000)
+      setPhotoUrl(''); setPhotoPreview('')
+      setTimeout(() => { setSuccess(false); setOnglet('annonces') }, 2000)
     }
+  }
+
+  async function retirerArticle(id: string) {
+    if (!confirm('Retirer cet article ?')) return
+    await supabase.from('items').update({ status: 'inactive' }).eq('id', id)
+    loadMesArticles()
   }
 
   const tabs = [
     { k:'depot',      l:'+ Déposer' },
+    { k:'annonces',   l:'📋 Annonces' },
     { k:'lives',      l:'📅 Lives' },
     { k:'coupons',    l:'🎟️ Coupons' },
     { k:'parrainage', l:'🎁 Parrainage' },
-    { k:'ventes',     l:'Ventes' },
-    { k:'revenus',    l:'Revenus' },
+    { k:'revenus',    l:'💰 Revenus' },
   ]
+
+  const actifs = mesArticles.filter(a => a.status === 'active')
+  const totalVues = mesArticles.reduce((s,a) => s + (a.views||0), 0)
+  const totalFavoris = mesArticles.reduce((s,a) => s + (a.favorites||0), 0)
 
   return (
     <div style={{ paddingBottom:80 }}>
@@ -116,9 +118,9 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
         <p style={{ fontSize:11, color:'rgba(255,255,255,.75)' }}>Gérez vos articles et revenus</p>
         <div style={{ display:'flex', gap:8, marginTop:10 }}>
           {[
-            [String(mesArticles.filter(a=>a.status==='active').length), 'En vente'],
-            [String(mesArticles.reduce((s,a)=>s+(a.views||0),0)), 'Vues total'],
-            [String(mesArticles.reduce((s,a)=>s+(a.favorites||0),0)), 'Favoris'],
+            [String(actifs.length), 'En vente'],
+            [String(totalVues), 'Vues total'],
+            [String(totalFavoris), 'Favoris'],
           ].map(([n,l]) => (
             <div key={l} style={{ flex:1, background:'rgba(255,255,255,.15)', borderRadius:10, padding:8, textAlign:'center' }}>
               <div style={{ fontSize:15, fontWeight:800, color:'#fff' }}>{n}</div>
@@ -139,7 +141,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
 
       <div style={{ padding:'12px 14px' }}>
 
-        {/* DÉPOSER */}
+        {/* ===== DÉPOSER ===== */}
         {onglet==='depot' && (
           <div>
             <div style={card}>
@@ -153,9 +155,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                     </div>
                   )}
                   {!uploading && photoUrl && (
-                    <div style={{ position:'absolute', top:8, right:8, background:'#2E7D32', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:10 }}>
-                      ✓ Uploadée
-                    </div>
+                    <div style={{ position:'absolute', top:8, right:8, background:'#2E7D32', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:10 }}>✓ Uploadée</div>
                   )}
                   <button onClick={()=>{ setPhotoPreview(''); setPhotoUrl('') }} style={{ position:'absolute', top:8, left:8, background:'rgba(0,0,0,.5)', color:'#fff', border:'none', borderRadius:'50%', width:24, height:24, cursor:'pointer', fontSize:12 }}>✕</button>
                 </div>
@@ -217,7 +217,93 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           </div>
         )}
 
-        {/* LIVES */}
+        {/* ===== ANNONCES ===== */}
+        {onglet==='annonces' && (
+          <div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:'#111' }}>Mes annonces ({mesArticles.length})</div>
+              <button onClick={()=>setOnglet('depot')} style={{ padding:'6px 14px', background:P, color:'#fff', border:'none', borderRadius:20, fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                + Nouveau
+              </button>
+            </div>
+
+            {statsLoading && <div style={{ textAlign:'center', padding:30, color:'#aaa' }}>Chargement…</div>}
+
+            {!statsLoading && mesArticles.length === 0 && (
+              <div style={{ textAlign:'center', padding:30 }}>
+                <div style={{ fontSize:40, marginBottom:10 }}>📦</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'#111', marginBottom:6 }}>Aucune annonce</div>
+                <div style={{ fontSize:11, color:'#aaa', marginBottom:16 }}>Publiez votre premier article !</div>
+                <button onClick={()=>setOnglet('depot')} style={{ padding:'10px 20px', background:P, color:'#fff', border:'none', borderRadius:20, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                  + Déposer un article
+                </button>
+              </div>
+            )}
+
+            {mesArticles.map((it) => (
+              <div key={it.id} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:14, overflow:'hidden', marginBottom:10 }}>
+                <div style={{ display:'flex', gap:10, padding:'10px 12px' }}>
+                  {/* PHOTO */}
+                  <div style={{ width:64, height:64, borderRadius:10, background:'#FDEDEC', overflow:'hidden', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>
+                    {it.image_url ? (
+                      <img src={it.image_url} alt={it.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                    ) : it.emoji}
+                  </div>
+                  {/* INFOS */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{it.title}</div>
+                    <div style={{ fontSize:10, color:'#aaa', marginTop:2 }}>{it.category}</div>
+                    <div style={{ fontSize:15, fontWeight:800, color:P, marginTop:3 }}>{it.price?.toLocaleString('fr-FR')} €</div>
+                  </div>
+                  {/* STATUS */}
+                  <div style={{ flexShrink:0, textAlign:'right' }}>
+                    <span style={{ fontSize:9, padding:'3px 8px', borderRadius:10, fontWeight:600, display:'inline-block', background: it.status==='active'?'#FDEDEC':'#f0f0f0', color: it.status==='active'?P:'#888' }}>
+                      {it.status==='active' ? '● En vente' : 'Inactif'}
+                    </span>
+                    <div style={{ fontSize:9, color:'#aaa', marginTop:4 }}>
+                      {it.type==='fixed' ? '🏷️ Prix fixe' : it.type==='express' ? '⚡ Express' : '📡 Live'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* STATS */}
+                <div style={{ background:'#fafafa', borderTop:'0.5px solid #f5f5f5', padding:'8px 12px', display:'flex', alignItems:'center', gap:16 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <span style={{ fontSize:14 }}>👁</span>
+                    <div>
+                      <div style={{ fontSize:14, fontWeight:800, color:'#111' }}>{it.views || 0}</div>
+                      <div style={{ fontSize:8, color:'#aaa' }}>vues</div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <span style={{ fontSize:14 }}>🤍</span>
+                    <div>
+                      <div style={{ fontSize:14, fontWeight:800, color:'#111' }}>{it.favorites || 0}</div>
+                      <div style={{ fontSize:8, color:'#aaa' }}>favoris</div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <span style={{ fontSize:14 }}>📅</span>
+                    <div>
+                      <div style={{ fontSize:10, fontWeight:600, color:'#111' }}>{new Date(it.created_at).toLocaleDateString('fr-FR')}</div>
+                      <div style={{ fontSize:8, color:'#aaa' }}>publié</div>
+                    </div>
+                  </div>
+                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                    <button style={{ padding:'5px 10px', borderRadius:10, border:`0.5px solid ${P}`, background:'#fff', color:P, fontSize:9, fontWeight:700, cursor:'pointer' }}>
+                      ✏️ Modifier
+                    </button>
+                    <button onClick={()=>retirerArticle(it.id)} style={{ padding:'5px 10px', borderRadius:10, border:'0.5px solid #f0eded', background:'#fff', color:'#aaa', fontSize:9, fontWeight:700, cursor:'pointer' }}>
+                      🗑️ Retirer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ===== LIVES ===== */}
         {onglet==='lives' && (
           <div>
             <button onClick={()=>goTab('live')} style={{ width:'100%', padding:11, background:P, color:'#fff', border:'none', borderRadius:12, fontSize:12, fontWeight:800, cursor:'pointer', marginBottom:12 }}>
@@ -244,7 +330,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           </div>
         )}
 
-        {/* COUPONS */}
+        {/* ===== COUPONS ===== */}
         {onglet==='coupons' && (
           <div>
             <button style={{ width:'100%', padding:11, background:P, color:'#fff', border:'none', borderRadius:12, fontSize:12, fontWeight:800, cursor:'pointer', marginBottom:12 }}>
@@ -267,7 +353,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           </div>
         )}
 
-        {/* PARRAINAGE */}
+        {/* ===== PARRAINAGE ===== */}
         {onglet==='parrainage' && (
           <div>
             <div style={{ background:'linear-gradient(135deg,#1a0a08,#3a0f0a)', borderRadius:12, padding:16, marginBottom:12, textAlign:'center' }}>
@@ -278,7 +364,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                 <button style={{ padding:'7px 14px', background:P, border:'none', borderRadius:20, fontSize:11, fontWeight:700, color:'#fff', cursor:'pointer' }}>Copier 📋</button>
               </div>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:12 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
               {[['3','Parrainés'],['15€','Gagnés'],['5€','En attente']].map(([n,l]) => (
                 <div key={l} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:10, textAlign:'center' }}>
                   <div style={{ fontSize:18, fontWeight:800, color:P }}>{n}</div>
@@ -289,105 +375,36 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           </div>
         )}
 
-        {/* VENTES */}
-        {onglet==='ventes' && (
-          <div>
-            {statsLoading && <div style={{ textAlign:'center', padding:30, color:'#aaa' }}>Chargement…</div>}
-
-            {!statsLoading && mesArticles.length === 0 && (
-              <div style={{ textAlign:'center', padding:30 }}>
-                <div style={{ fontSize:32, marginBottom:10 }}>📦</div>
-                <div style={{ fontSize:13, fontWeight:700, color:'#111', marginBottom:6 }}>Aucun article en vente</div>
-                <div style={{ fontSize:11, color:'#aaa', marginBottom:16 }}>Publiez votre premier article !</div>
-                <button onClick={()=>setOnglet('depot')} style={{ padding:'10px 20px', background:P, color:'#fff', border:'none', borderRadius:20, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-                  + Déposer un article
-                </button>
-              </div>
-            )}
-
-            {mesArticles.map((it, i) => (
-              <div key={i} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:14, overflow:'hidden', marginBottom:10 }}>
-                <div style={{ display:'flex', gap:10, padding:'10px 12px' }}>
-                  {/* PHOTO */}
-                  <div style={{ width:60, height:60, borderRadius:10, background:'#FDEDEC', overflow:'hidden', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>
-                    {it.image_url ? (
-                      <img src={it.image_url} alt={it.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                    ) : (
-                      it.emoji
-                    )}
-                  </div>
-                  {/* INFOS */}
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{it.title}</div>
-                    <div style={{ fontSize:10, color:'#aaa', marginTop:2 }}>{it.category}</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:P, marginTop:3 }}>{it.price?.toLocaleString('fr-FR')} €</div>
-                  </div>
-                  {/* STATUS */}
-                  <div style={{ flexShrink:0, textAlign:'right' }}>
-                    <span style={{ fontSize:9, padding:'3px 8px', borderRadius:10, fontWeight:600, display:'inline-block', background: it.status==='active'?'#FDEDEC':'#f0f0f0', color: it.status==='active'?P:'#888' }}>
-                      {it.status==='active' ? '● En vente' : 'Inactif'}
-                    </span>
-                    <div style={{ fontSize:9, color:'#aaa', marginTop:4 }}>
-                      {it.type==='fixed' ? '🏷️ Prix fixe' : it.type==='express' ? '⚡ Express' : '📡 Live'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* STATS */}
-                <div style={{ display:'flex', borderTop:'0.5px solid #f5f5f5', padding:'8px 12px', gap:16 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                    <span style={{ fontSize:13 }}>👁</span>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:800, color:'#111' }}>{it.views || 0}</div>
-                      <div style={{ fontSize:8, color:'#aaa' }}>vues</div>
-                    </div>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                    <span style={{ fontSize:13 }}>🤍</span>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:800, color:'#111' }}>{it.favorites || 0}</div>
-                      <div style={{ fontSize:8, color:'#aaa' }}>favoris</div>
-                    </div>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                    <span style={{ fontSize:13 }}>📅</span>
-                    <div>
-                      <div style={{ fontSize:10, fontWeight:600, color:'#111' }}>{new Date(it.created_at).toLocaleDateString('fr-FR')}</div>
-                      <div style={{ fontSize:8, color:'#aaa' }}>publié le</div>
-                    </div>
-                  </div>
-                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
-                    <button style={{ padding:'5px 10px', borderRadius:10, border:`0.5px solid ${P}`, background:'#fff', color:P, fontSize:9, fontWeight:700, cursor:'pointer' }}>
-                      Modifier
-                    </button>
-                    <button style={{ padding:'5px 10px', borderRadius:10, border:'0.5px solid #f0eded', background:'#fff', color:'#aaa', fontSize:9, fontWeight:700, cursor:'pointer' }}>
-                      Retirer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* REVENUS */}
+        {/* ===== REVENUS ===== */}
         {onglet==='revenus' && (
           <div>
             <div style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:13, marginBottom:10 }}>
               <div style={{ fontSize:11, fontWeight:600, color:'#aaa', marginBottom:6 }}>REVENUS CE MOIS</div>
-              <div style={{ fontSize:22, fontWeight:800, color:P }}>332 €</div>
-              <div style={{ fontSize:10, color:'#bbb', marginTop:2 }}>+18% vs mois dernier</div>
+              <div style={{ fontSize:22, fontWeight:800, color:P }}>0 €</div>
+              <div style={{ fontSize:10, color:'#bbb', marginTop:2 }}>Publiez des articles pour commencer</div>
               <div style={{ marginTop:10 }}>
-                {[{l:'Lun',w:40,v:'32€'},{l:'Mar',w:65,v:'52€'},{l:'Mer',w:30,v:'24€'},{l:'Jeu',w:80,v:'64€'},{l:'Ven',w:55,v:'44€'},{l:'Sam',w:100,v:'80€'},{l:'Dim',w:45,v:'36€'}].map(b => (
+                {[{l:'Lun',w:0},{l:'Mar',w:0},{l:'Mer',w:0},{l:'Jeu',w:0},{l:'Ven',w:0},{l:'Sam',w:0},{l:'Dim',w:0}].map(b => (
                   <div key={b.l} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
                     <div style={{ fontSize:9, color:'#aaa', width:26, textAlign:'right' }}>{b.l}</div>
-                    <div style={{ flex:1, height:5, background:'#f5f5f5', borderRadius:3, overflow:'hidden' }}>
-                      <div style={{ width:`${b.w}%`, height:'100%', background:P, borderRadius:3 }}/>
-                    </div>
-                    <div style={{ fontSize:9, fontWeight:700, color:'#111', width:32, textAlign:'right' }}>{b.v}</div>
+                    <div style={{ flex:1, height:5, background:'#f5f5f5', borderRadius:3 }}/>
+                    <div style={{ fontSize:9, fontWeight:700, color:'#111', width:32, textAlign:'right' }}>0€</div>
                   </div>
                 ))}
               </div>
+            </div>
+            <div style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:13 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'#aaa', marginBottom:7 }}>RÉSUMÉ</div>
+              {[
+                ['Articles en vente', String(actifs.length)],
+                ['Vues totales', String(totalVues)],
+                ['Favoris totaux', String(totalFavoris)],
+                ['Note vendeur', '⭐ -'],
+              ].map(([l,v]) => (
+                <div key={l} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'5px 0', borderBottom:'0.5px solid #f5f0f0' }}>
+                  <span style={{ color:'#bbb' }}>{l}</span>
+                  <span style={{ fontWeight:700, color:P }}>{v}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
