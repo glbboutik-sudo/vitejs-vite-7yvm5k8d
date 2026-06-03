@@ -14,9 +14,7 @@ export default function Home({ goTab, onItemClick }: { goTab: (t: string) => voi
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadItems()
-  }, [])
+  useEffect(() => { loadItems() }, [])
 
   async function loadItems() {
     const { data } = await supabase
@@ -34,9 +32,7 @@ export default function Home({ goTab, onItemClick }: { goTab: (t: string) => voi
       <div style={{ height: small ? 75 : 90, display:'flex', alignItems:'center', justifyContent:'center', background:'#FDEDEC', fontSize: small ? 26 : 30, position:'relative', overflow:'hidden' }}>
         {it.image_url ? (
           <img src={it.image_url} alt={it.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-        ) : (
-          <span>{it.emoji}</span>
-        )}
+        ) : <span>{it.emoji}</span>}
         <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:P }}/>
       </div>
       <div style={{ padding: small ? '6px 8px 8px' : '7px 9px 9px' }}>
@@ -54,10 +50,7 @@ export default function Home({ goTab, onItemClick }: { goTab: (t: string) => voi
     <div style={{ paddingBottom:80 }}>
 
       {/* HEADER */}
-      <div style={{ background:P, padding:'8px 14px 0' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#fff', marginBottom:6 }}>
-          <span>9:41</span><span>▶ ⬛</span>
-        </div>
+      <div style={{ background:P, padding:'18px 14px 0' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingBottom:10 }}>
           <div style={{ fontSize:22, fontWeight:800, color:'#fff', letterSpacing:-.5 }}>Kileer</div>
           <div style={{ display:'flex', gap:8 }}>
@@ -66,9 +59,9 @@ export default function Home({ goTab, onItemClick }: { goTab: (t: string) => voi
             <div style={avatarStyle}>JD</div>
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,.15)', borderRadius:22, padding:'0 13px', border:'1px solid rgba(255,255,255,.25)', marginBottom:10 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,.15)', borderRadius:22, padding:'0 13px', border:'1px solid rgba(255,255,255,.25)', marginBottom:12 }}>
           <span style={{ color:'rgba(255,255,255,.7)' }}>🔍</span>
-          <input placeholder="Rechercher articles, vendeurs…" style={{ flex:1, border:'none', background:'transparent', fontSize:12, color:'#fff', padding:'8px 0', outline:'none' }}/>
+          <input placeholder="Rechercher articles, vendeurs…" style={{ flex:1, border:'none', background:'transparent', fontSize:12, color:'#fff', padding:'10px 0', outline:'none' }}/>
         </div>
       </div>
 

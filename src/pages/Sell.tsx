@@ -102,18 +102,15 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
     { k:'revenus',    l:'💰 Revenus' },
   ]
 
-  const actifs = mesArticles.filter(a => a.status === 'active')
-  const totalVues = mesArticles.reduce((s,a) => s + (a.views||0), 0)
-  const totalFavoris = mesArticles.reduce((s,a) => s + (a.favorites||0), 0)
+  const actifs      = mesArticles.filter(a => a.status === 'active')
+  const totalVues   = mesArticles.reduce((s,a) => s + (a.views||0), 0)
+  const totalFavoris= mesArticles.reduce((s,a) => s + (a.favorites||0), 0)
 
   return (
     <div style={{ paddingBottom:80 }}>
 
       {/* HEADER */}
-      <div style={{ background:`linear-gradient(135deg,${P},#b03028)`, padding:'14px 16px 18px' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#fff', marginBottom:8 }}>
-          <span>9:41</span><span>▶ ⬛</span>
-        </div>
+      <div style={{ background:`linear-gradient(135deg,${P},#b03028)`, padding:'18px 16px 18px' }}>
         <h2 style={{ fontSize:16, fontWeight:800, color:'#fff', marginBottom:3 }}>Mon espace vendeur</h2>
         <p style={{ fontSize:11, color:'rgba(255,255,255,.75)' }}>Gérez vos articles et revenus</p>
         <div style={{ display:'flex', gap:8, marginTop:10 }}>
@@ -141,7 +138,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
 
       <div style={{ padding:'12px 14px' }}>
 
-        {/* ===== DÉPOSER ===== */}
+        {/* DÉPOSER */}
         {onglet==='depot' && (
           <div>
             <div style={card}>
@@ -217,7 +214,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           </div>
         )}
 
-        {/* ===== ANNONCES ===== */}
+        {/* ANNONCES */}
         {onglet==='annonces' && (
           <div>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
@@ -243,19 +240,14 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
             {mesArticles.map((it) => (
               <div key={it.id} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:14, overflow:'hidden', marginBottom:10 }}>
                 <div style={{ display:'flex', gap:10, padding:'10px 12px' }}>
-                  {/* PHOTO */}
                   <div style={{ width:64, height:64, borderRadius:10, background:'#FDEDEC', overflow:'hidden', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>
-                    {it.image_url ? (
-                      <img src={it.image_url} alt={it.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                    ) : it.emoji}
+                    {it.image_url ? <img src={it.image_url} alt={it.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : it.emoji}
                   </div>
-                  {/* INFOS */}
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:12, fontWeight:700, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{it.title}</div>
                     <div style={{ fontSize:10, color:'#aaa', marginTop:2 }}>{it.category}</div>
                     <div style={{ fontSize:15, fontWeight:800, color:P, marginTop:3 }}>{it.price?.toLocaleString('fr-FR')} €</div>
                   </div>
-                  {/* STATUS */}
                   <div style={{ flexShrink:0, textAlign:'right' }}>
                     <span style={{ fontSize:9, padding:'3px 8px', borderRadius:10, fontWeight:600, display:'inline-block', background: it.status==='active'?'#FDEDEC':'#f0f0f0', color: it.status==='active'?P:'#888' }}>
                       {it.status==='active' ? '● En vente' : 'Inactif'}
@@ -265,8 +257,6 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                     </div>
                   </div>
                 </div>
-
-                {/* STATS */}
                 <div style={{ background:'#fafafa', borderTop:'0.5px solid #f5f5f5', padding:'8px 12px', display:'flex', alignItems:'center', gap:16 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                     <span style={{ fontSize:14 }}>👁</span>
@@ -290,12 +280,8 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                     </div>
                   </div>
                   <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
-                    <button style={{ padding:'5px 10px', borderRadius:10, border:`0.5px solid ${P}`, background:'#fff', color:P, fontSize:9, fontWeight:700, cursor:'pointer' }}>
-                      ✏️ Modifier
-                    </button>
-                    <button onClick={()=>retirerArticle(it.id)} style={{ padding:'5px 10px', borderRadius:10, border:'0.5px solid #f0eded', background:'#fff', color:'#aaa', fontSize:9, fontWeight:700, cursor:'pointer' }}>
-                      🗑️ Retirer
-                    </button>
+                    <button style={{ padding:'5px 10px', borderRadius:10, border:`0.5px solid ${P}`, background:'#fff', color:P, fontSize:9, fontWeight:700, cursor:'pointer' }}>✏️ Modifier</button>
+                    <button onClick={()=>retirerArticle(it.id)} style={{ padding:'5px 10px', borderRadius:10, border:'0.5px solid #f0eded', background:'#fff', color:'#aaa', fontSize:9, fontWeight:700, cursor:'pointer' }}>🗑️ Retirer</button>
                   </div>
                 </div>
               </div>
@@ -303,7 +289,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           </div>
         )}
 
-        {/* ===== LIVES ===== */}
+        {/* LIVES */}
         {onglet==='lives' && (
           <div>
             <button onClick={()=>goTab('live')} style={{ width:'100%', padding:11, background:P, color:'#fff', border:'none', borderRadius:12, fontSize:12, fontWeight:800, cursor:'pointer', marginBottom:12 }}>
@@ -330,7 +316,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           </div>
         )}
 
-        {/* ===== COUPONS ===== */}
+        {/* COUPONS */}
         {onglet==='coupons' && (
           <div>
             <button style={{ width:'100%', padding:11, background:P, color:'#fff', border:'none', borderRadius:12, fontSize:12, fontWeight:800, cursor:'pointer', marginBottom:12 }}>
@@ -353,7 +339,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           </div>
         )}
 
-        {/* ===== PARRAINAGE ===== */}
+        {/* PARRAINAGE */}
         {onglet==='parrainage' && (
           <div>
             <div style={{ background:'linear-gradient(135deg,#1a0a08,#3a0f0a)', borderRadius:12, padding:16, marginBottom:12, textAlign:'center' }}>
@@ -375,30 +361,21 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           </div>
         )}
 
-        {/* ===== REVENUS ===== */}
+        {/* REVENUS */}
         {onglet==='revenus' && (
           <div>
             <div style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:13, marginBottom:10 }}>
               <div style={{ fontSize:11, fontWeight:600, color:'#aaa', marginBottom:6 }}>REVENUS CE MOIS</div>
               <div style={{ fontSize:22, fontWeight:800, color:P }}>0 €</div>
               <div style={{ fontSize:10, color:'#bbb', marginTop:2 }}>Publiez des articles pour commencer</div>
-              <div style={{ marginTop:10 }}>
-                {[{l:'Lun',w:0},{l:'Mar',w:0},{l:'Mer',w:0},{l:'Jeu',w:0},{l:'Ven',w:0},{l:'Sam',w:0},{l:'Dim',w:0}].map(b => (
-                  <div key={b.l} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
-                    <div style={{ fontSize:9, color:'#aaa', width:26, textAlign:'right' }}>{b.l}</div>
-                    <div style={{ flex:1, height:5, background:'#f5f5f5', borderRadius:3 }}/>
-                    <div style={{ fontSize:9, fontWeight:700, color:'#111', width:32, textAlign:'right' }}>0€</div>
-                  </div>
-                ))}
-              </div>
             </div>
             <div style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:13 }}>
               <div style={{ fontSize:11, fontWeight:600, color:'#aaa', marginBottom:7 }}>RÉSUMÉ</div>
               {[
                 ['Articles en vente', String(actifs.length)],
-                ['Vues totales', String(totalVues)],
-                ['Favoris totaux', String(totalFavoris)],
-                ['Note vendeur', '⭐ -'],
+                ['Vues totales',      String(totalVues)],
+                ['Favoris totaux',    String(totalFavoris)],
+                ['Note vendeur',      '⭐ -'],
               ].map(([l,v]) => (
                 <div key={l} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'5px 0', borderBottom:'0.5px solid #f5f0f0' }}>
                   <span style={{ color:'#bbb' }}>{l}</span>
