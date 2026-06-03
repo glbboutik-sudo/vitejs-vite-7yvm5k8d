@@ -18,6 +18,7 @@ function App() {
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [showCategories, setShowCategories] = useState(false)
   const [showEditProfile, setShowEditProfile] = useState(false)
+  const [profileKey, setProfileKey] = useState(0)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -64,14 +65,17 @@ function App() {
       {/* Page modifier profil */}
       {showEditProfile && !selectedItem && (
         <div style={{ position:'absolute', inset:0, zIndex:140, overflowY:'auto', background:'#fafafa' }}>
-          <EditProfile goBack={() => setShowEditProfile(false)} />
+          <EditProfile goBack={() => {
+            setShowEditProfile(false)
+            setProfileKey(k => k + 1)
+          }} />
         </div>
       )}
 
       <div className="page" style={{ display: tab==='live' || tab==='express' ? 'none' : 'block' }}>
         {tab === 'home' && <Home goTab={setTab} onItemClick={setSelectedItem} onSearchClick={() => setShowCategories(true)} />}
         {tab === 'sell' && <Sell goTab={setTab} />}
-        {tab === 'me'   && <Me   goTab={setTab} onEditProfile={() => setShowEditProfile(true)} />}
+        {tab === 'me'   && <Me key={profileKey} goTab={setTab} onEditProfile={() => setShowEditProfile(true)} />}
       </div>
 
       {tab !== 'live' && tab !== 'express' && (
