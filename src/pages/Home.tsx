@@ -50,8 +50,8 @@ export default function Home({ goTab, onItemClick }: { goTab: (t: string) => voi
     <div style={{ paddingBottom:80 }}>
 
       {/* HEADER */}
-      <div style={{ background:P, padding:'18px 14px 0' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingBottom:10 }}>
+      <div style={{ background:P, padding:'10px 14px 12px' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
           <div style={{ fontSize:22, fontWeight:800, color:'#fff', letterSpacing:-.5 }}>Kileer</div>
           <div style={{ display:'flex', gap:8 }}>
             <button onClick={()=>goTab('live')} style={iconBtn}>📡</button>
@@ -59,7 +59,7 @@ export default function Home({ goTab, onItemClick }: { goTab: (t: string) => voi
             <div style={avatarStyle}>JD</div>
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,.15)', borderRadius:22, padding:'0 13px', border:'1px solid rgba(255,255,255,.25)', marginBottom:12 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,.15)', borderRadius:22, padding:'0 13px', border:'1px solid rgba(255,255,255,.25)' }}>
           <span style={{ color:'rgba(255,255,255,.7)' }}>🔍</span>
           <input placeholder="Rechercher articles, vendeurs…" style={{ flex:1, border:'none', background:'transparent', fontSize:12, color:'#fff', padding:'10px 0', outline:'none' }}/>
         </div>
