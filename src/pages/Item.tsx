@@ -1,6 +1,21 @@
+import { useEffect } from 'react'
+import { supabase } from '../supabase'
+
 const P = '#D94F45'
 
 export default function Item({ item, goBack }: { item: any, goBack: () => void }) {
+
+  useEffect(() => {
+    // Incrémenter le compteur de vues
+    async function addView() {
+      await supabase
+        .from('items')
+        .update({ views: (item.views || 0) + 1 })
+        .eq('id', item.id)
+    }
+    addView()
+  }, [item.id])
+
   return (
     <div style={{ paddingBottom:80, background:'#fafafa', minHeight:'100vh' }}>
 
@@ -20,6 +35,10 @@ export default function Item({ item, goBack }: { item: any, goBack: () => void }
         <div style={{ position:'absolute', top:0, left:0, right:0, height:4, background:P }}/>
         <div style={{ position:'absolute', top:12, right:12, background:'#fff', borderRadius:20, padding:'4px 10px', fontSize:10, fontWeight:700, color:'#2E7D32' }}>
           ✓ Disponible
+        </div>
+        {/* COMPTEUR VUES */}
+        <div style={{ position:'absolute', bottom:12, left:12, background:'rgba(0,0,0,.5)', borderRadius:20, padding:'4px 10px', fontSize:10, fontWeight:600, color:'#fff', display:'flex', alignItems:'center', gap:4 }}>
+          👁 {(item.views || 0) + 1} vue{(item.views || 0) + 1 > 1 ? 's' : ''}
         </div>
       </div>
 
@@ -52,6 +71,7 @@ export default function Item({ item, goBack }: { item: any, goBack: () => void }
           ['Catégorie', item.category || '-'],
           ['État', 'Bon état'],
           ['Stock', `${item.stock || 1} disponible`],
+          ['Vues', `${(item.views || 0) + 1}`],
           ['Livraison', 'Colissimo 48h'],
           ['Retours', '14 jours'],
         ].map(([k,v]) => (
