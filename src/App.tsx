@@ -7,11 +7,13 @@ import Live from './pages/Live'
 import Express from './pages/Express'
 import Sell from './pages/Sell'
 import Me from './pages/Me'
+import Item from './pages/Item'
 
 function App() {
   const [tab, setTab] = useState('home')
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedItem, setSelectedItem] = useState<any>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -41,8 +43,15 @@ function App() {
       {tab === 'live'    && <Live    goTab={setTab} />}
       {tab === 'express' && <Express goTab={setTab} />}
 
+      {/* Page détail article */}
+      {selectedItem && (
+        <div style={{ position:'absolute', inset:0, zIndex:150, overflowY:'auto', background:'#fafafa' }}>
+          <Item item={selectedItem} goBack={() => setSelectedItem(null)} />
+        </div>
+      )}
+
       <div className="page" style={{ display: tab==='live' || tab==='express' ? 'none' : 'block' }}>
-        {tab === 'home' && <Home goTab={setTab} />}
+        {tab === 'home' && <Home goTab={setTab} onItemClick={setSelectedItem} />}
         {tab === 'sell' && <Sell goTab={setTab} />}
         {tab === 'me'   && <Me   goTab={setTab} />}
       </div>

@@ -1,4 +1,5 @@
-import { CSSProperties, useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 
 const P = '#D94F45'
@@ -9,7 +10,7 @@ const streams = [
   { name:'PhotoPro',    emoji:'📷', bg:'#05080f', price:890, viewers:312 },
 ]
 
-export default function Home({ goTab }: { goTab: (t: string) => void }) {
+export default function Home({ goTab, onItemClick }: { goTab: (t: string) => void, onItemClick: (item: any) => void }) {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -29,7 +30,7 @@ export default function Home({ goTab }: { goTab: (t: string) => void }) {
   }
 
   const cardHtml = (it: any, small = false) => (
-    <div key={it.id} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:14, overflow:'hidden', cursor:'pointer', ...(small ? { minWidth:130, flexShrink:0 } : {}) }}>
+    <div key={it.id} onClick={() => onItemClick(it)} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:14, overflow:'hidden', cursor:'pointer', ...(small ? { minWidth:130, flexShrink:0 } : {}) }}>
       <div style={{ height: small ? 75 : 90, display:'flex', alignItems:'center', justifyContent:'center', background:'#FDEDEC', fontSize: small ? 26 : 30, position:'relative' }}>
         {it.emoji}
         <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:P }}/>
@@ -38,7 +39,7 @@ export default function Home({ goTab }: { goTab: (t: string) => void }) {
         <div style={{ fontSize: small ? 10 : 11, fontWeight:700, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{it.title}</div>
         <div style={{ fontSize:9, color:'#aaa', margin:'2px 0 5px' }}>{it.category}</div>
         <div style={{ fontSize: small ? 12 : 14, fontWeight:800, color:P, marginBottom: small ? 5 : 7 }}>{it.price?.toLocaleString('fr-FR')} €</div>
-        <button style={{ width:'100%', padding: small ? 5 : 6, borderRadius:20, border:'none', fontSize: small ? 9 : 10, fontWeight:700, cursor:'pointer', color:'#fff', background:P }}>
+        <button onClick={e => { e.stopPropagation(); onItemClick(it) }} style={{ width:'100%', padding: small ? 5 : 6, borderRadius:20, border:'none', fontSize: small ? 9 : 10, fontWeight:700, cursor:'pointer', color:'#fff', background:P }}>
           Acheter
         </button>
       </div>
@@ -113,24 +114,13 @@ export default function Home({ goTab }: { goTab: (t: string) => void }) {
           <span>✨ Pour toi</span>
           <span style={{ fontSize:10, color:P }}>{items.length} articles</span>
         </div>
-
-        {loading && (
-          <div style={{ textAlign:'center', padding:'30px', color:'#aaa', fontSize:13 }}>
-            Chargement…
-          </div>
-        )}
-
-        {/* 4 premiers en grille 2 colonnes */}
+        {loading && <div style={{ textAlign:'center', padding:'30px', color:'#aaa', fontSize:13 }}>Chargement…</div>}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8, padding:'0 14px' }}>
           {items.slice(0,4).map(it => cardHtml(it, false))}
         </div>
-
-        {/* Reste en défilement horizontal */}
         {items.length > 4 && (
           <div>
-            <div style={{ padding:'8px 14px 4px', fontSize:11, fontWeight:600, color:'#aaa' }}>
-              Voir aussi →
-            </div>
+            <div style={{ padding:'8px 14px 4px', fontSize:11, fontWeight:600, color:'#aaa' }}>Voir aussi →</div>
             <div style={{ display:'flex', gap:8, padding:'0 14px 8px', overflowX:'auto' }}>
               {items.slice(4).map(it => cardHtml(it, true))}
             </div>
@@ -144,9 +134,9 @@ export default function Home({ goTab }: { goTab: (t: string) => void }) {
           <span style={{ fontSize:13, fontWeight:800, color:'#111' }}>📰 Fil d'actualité</span>
         </div>
         {[
-          { emoji:'🎸', seller:'MusiqueStore', color:'#D94F45', bg:'#1a0805', title:'MusiqueStore est en LIVE !',      desc:'Vente de guitares vintage — 142 spectateurs', time:'Maintenant', type:'live',    viewers:142 },
-          { emoji:'👟', seller:'SneakerKing',  color:'#7c3aed', bg:'',        title:'Nouvelle enchère : Air Jordan 1', desc:'SneakerKing vient de mettre en vente une paire neuve', time:'3min', type:'vente',   price:'95 €' },
-          { emoji:'💍', seller:'BijouxParis',  color:'#e6732a', bg:'',        title:'⚡ Express — Bague argent',        desc:'Seulement 2 minutes restantes !', time:'1min', type:'express', price:'28 €' },
+          { emoji:'🎸', seller:'MusiqueStore', color:'#D94F45', bg:'#1a0805', title:'MusiqueStore est en LIVE !', desc:'Vente de guitares vintage — 142 spectateurs', time:'Maintenant', type:'live', viewers:142 },
+          { emoji:'👟', seller:'SneakerKing',  color:'#7c3aed', bg:'',        title:'Nouvelle enchère : Air Jordan 1', desc:'SneakerKing vient de mettre en vente une paire neuve', time:'3min', type:'vente', price:'95 €' },
+          { emoji:'💍', seller:'BijouxParis',  color:'#e6732a', bg:'',        title:'⚡ Express — Bague argent', desc:'Seulement 2 minutes restantes !', time:'1min', type:'express', price:'28 €' },
         ].map((a,i) => (
           <div key={i} onClick={()=>a.type==='live'?goTab('live'):a.type==='express'?goTab('express'):undefined} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:14, margin:'0 14px 10px', overflow:'hidden', cursor:'pointer' }}>
             <div style={{ height:110, background:a.bg||'#FDEDEC', display:'flex', alignItems:'center', justifyContent:'center', fontSize:36, position:'relative' }}>
