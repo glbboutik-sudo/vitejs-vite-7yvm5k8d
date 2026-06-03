@@ -1,10 +1,21 @@
 import { useState } from 'react'
+import { supabase } from '../supabase'
 
 const P = '#D94F45'
+
+const emojiMap: Record<string, string> = {
+  art: '🎨',
+  mode: '👜',
+  tech: '💻',
+  deco: '🪑',
+  musique: '🎸',
+}
 
 export default function Sell({ goTab }: { goTab: (t: string) => void }) {
   const [onglet, setOnglet] = useState('depot')
   const [selD, setSelD] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   const tabs = [
     { k:'depot',      l:'+ Déposer' },
@@ -15,7 +26,40 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
     { k:'revenus',    l:'Revenus' },
   ]
 
-  const durees = ['1 min','5 min','15 min','30 min','1h','3h','6h','12h','24h']
+  async function publier() {
+    const titleEl    = document.getElementById('titre')       as HTMLInputElement
+    const prixEl     = document.getElementById('prix')        as HTMLInputElement
+    const categorieEl= document.getElementById('categorie')   as HTMLSelectElement
+    const descEl     = document.getElementById('desc')        as HTMLTextAreaElement
+
+    const title    = titleEl?.value?.trim()
+    const price    = parseFloat(prixEl?.value)
+    const category = categorieEl?.value
+    const desc     = descEl?.value?.trim()
+
+    if (!title)           { alert('Ajoutez un titre');       return }
+    if (!price || price <= 0) { alert('Ajoutez un prix valide'); return }
+
+    setLoading(true)
+    const { error } = await supabase.from('items').insert({
+      title,
+      description: desc || '',
+      price,
+      category,
+      emoji: emojiMap[category] || '📦',
+      stock: 1,
+      status: 'active',
+      type: selD || 'fixed',
+    })
+    setLoading(false)
+
+    if (error) {
+      alert('Erreur : ' + error.message)
+    } else {
+      setSuccess(true)
+      setTimeout(() => { setSuccess(false); setOnglet('ventes') }, 2000)
+    }
+  }
 
   return (
     <div style={{ paddingBottom:80 }}>
@@ -26,7 +70,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
           <span>9:41</span><span>▶ ⬛</span>
         </div>
         <h2 style={{ fontSize:16, fontWeight:800, color:'#fff', marginBottom:3 }}>Mon espace vendeur</h2>
-        <p style={{ fontSize:11, color:'rgba(255,255,255,.75)' }}>Gérez vos enchères et revenus</p>
+        <p style={{ fontSize:11, color:'rgba(255,255,255,.75)' }}>Gérez vos articles et revenus</p>
         <div style={{ display:'flex', gap:8, marginTop:10 }}>
           {[['2','En cours'],['332€','Ce mois'],['4.9⭐','Note']].map(([n,l]) => (
             <div key={l} style={{ flex:1, background:'rgba(255,255,255,.15)', borderRadius:10, padding:8, textAlign:'center' }}>
@@ -65,11 +109,11 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
               </div>
               <div style={fl}>
                 <label style={lbl}>Titre</label>
-                <input placeholder="Ex : Nike Air Max 90" style={inp}/>
+                <input id="titre" placeholder="Ex : Nike Air Max 90" style={inp}/>
               </div>
               <div style={fl}>
                 <label style={lbl}>Description</label>
-                <textarea placeholder="Décrivez votre article…" style={{ ...inp, height:48, resize:'none' }}/>
+                <textarea id="desc" placeholder="Décrivez votre article…" style={{ ...inp, height:48, resize:'none' } as React.CSSProperties}/>
               </div>
             </div>
 
@@ -77,33 +121,43 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
               <div style={cardTtl}>🏷️ Catégorie & prix</div>
               <div style={fl}>
                 <label style={lbl}>Catégorie</label>
-                <select style={inp}>
-                  <option>🎨 Art</option>
-                  <option>👜 Mode</option>
-                  <option>💻 Tech</option>
-                  <option>🪑 Déco</option>
-                  <option>🎸 Musique</option>
+                <select id="categorie" style={inp}>
+                  <option value="art">🎨 Art</option>
+                  <option value="mode">👜 Mode</option>
+                  <option value="tech">💻 Tech</option>
+                  <option value="deco">🪑 Déco</option>
+                  <option value="musique">🎸 Musique</option>
                 </select>
               </div>
               <div style={fl}>
-                <label style={lbl}>Prix de départ (€)</label>
-                <input type="number" placeholder="Ex : 50" style={inp}/>
+                <label style={lbl}>Prix (€)</label>
+                <input id="prix" type="number" placeholder="Ex : 50" min="1" style={inp}/>
               </div>
             </div>
 
             <div style={card}>
-              <div style={cardTtl}>⏱️ Durée</div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-                {durees.map(d => (
-                  <button key={d} onClick={()=>setSelD(d)} style={{ padding:'7px 3px', borderRadius:7, border:`0.5px solid ${selD===d ? P : '#eedede'}`, background: selD===d ? '#FDEDEC' : '#fafafa', fontSize:10, fontWeight:600, color: selD===d ? '#A83228' : '#999', cursor:'pointer' }}>
-                    {d}
+              <div style={cardTtl}>📦 Type de vente</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+                {[['fixed','🏷️','Prix fixe'],['express','⚡','Express'],['live','📡','Live']].map(([type,ico,label]) => (
+                  <button key={type} onClick={()=>setSelD(type)} style={{ padding:'8px 4px', borderRadius:10, border:`1.5px solid ${selD===type ? P : '#eedede'}`, background: selD===type ? '#FDEDEC' : '#fafafa', fontSize:9, fontWeight:600, color: selD===type ? '#A83228' : '#999', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+                    <span style={{ fontSize:16 }}>{ico}</span>{label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <button style={{ width:'100%', padding:11, background:P, color:'#fff', border:'none', borderRadius:20, fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}>
-              🚀 Publier l'enchère
+            {success && (
+              <div style={{ background:'#E8F5E9', color:'#2E7D32', padding:'10px 14px', borderRadius:12, textAlign:'center', fontWeight:700, fontSize:13, marginBottom:10 }}>
+                ✅ Article publié avec succès !
+              </div>
+            )}
+
+            <button
+              onClick={publier}
+              disabled={loading}
+              style={{ width:'100%', padding:11, background: loading ? '#ccc' : P, color:'#fff', border:'none', borderRadius:20, fontSize:13, fontWeight:800, cursor: loading ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}
+            >
+              {loading ? 'Publication…' : '🚀 Publier l\'article'}
             </button>
           </div>
         )}
@@ -111,12 +165,12 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
         {/* LIVES */}
         {onglet==='lives' && (
           <div>
-            <button style={{ width:'100%', padding:11, background:P, color:'#fff', border:'none', borderRadius:12, fontSize:12, fontWeight:800, cursor:'pointer', marginBottom:12 }}>
+            <button onClick={()=>goTab('live')} style={{ width:'100%', padding:11, background:P, color:'#fff', border:'none', borderRadius:12, fontSize:12, fontWeight:800, cursor:'pointer', marginBottom:12 }}>
               📅 Programmer un live
             </button>
             {[
               { emoji:'🎸', title:'Vente instruments vintage', date:'Sam 31 mai · 20h00', live:false },
-              { emoji:'💻', title:'Tech & gadgets',            date:"Aujourd'hui · 18h00",  live:true  },
+              { emoji:'💻', title:'Tech & gadgets',            date:"Aujourd'hui · 18h00", live:true  },
             ].map((l,i) => (
               <div key={i} style={{ background:'#111', borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
                 <div style={{ width:38, height:38, borderRadius:10, background:`linear-gradient(135deg,${P},#b03028)`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:17 }}>{l.emoji}</div>
@@ -127,7 +181,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                     {l.live ? '● En direct' : '⏳ Programmé'}
                   </span>
                 </div>
-                <button style={{ padding:'5px 10px', background:P, border:'none', borderRadius:20, fontSize:10, fontWeight:700, color:'#fff', cursor:'pointer' }}>
+                <button onClick={()=>goTab('live')} style={{ padding:'5px 10px', background:P, border:'none', borderRadius:20, fontSize:10, fontWeight:700, color:'#fff', cursor:'pointer' }}>
                   {l.live ? 'Rejoindre' : 'Modifier'}
                 </button>
               </div>
@@ -201,10 +255,10 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
         {onglet==='ventes' && (
           <div>
             {[
-              { emoji:'🎸', title:'Guitare vintage 1969', sub:'12 offres · 2h restant', price:'340 €', status:'live' },
-              { emoji:'👜', title:'Sac cuir artisanal',   sub:'7 offres · 35min',       price:'180 €', status:'live' },
-              { emoji:'🖼️', title:'Tableau aquarelle',    sub:'Terminé · 4 offres',     price:'210 €', status:'sold' },
-              { emoji:'⌚', title:'Montre mécanique',     sub:'Terminé · aucune offre', price:'0 €',   status:'end'  },
+              { emoji:'🎸', title:'Guitare vintage 1969', sub:'En vente · Prix fixe', price:'340 €', status:'live' },
+              { emoji:'👜', title:'Sac cuir artisanal',   sub:'En vente · Prix fixe', price:'180 €', status:'live' },
+              { emoji:'🖼️', title:'Tableau aquarelle',    sub:'Vendu',                price:'210 €', status:'sold' },
+              { emoji:'⌚', title:'Montre mécanique',     sub:'Expiré',               price:'0 €',   status:'end'  },
             ].map((s,i) => (
               <div key={i} style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
                 <div style={{ width:42, height:42, borderRadius:8, background:'#FDEDEC', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>{s.emoji}</div>
@@ -215,7 +269,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
                 <div style={{ textAlign:'right', flexShrink:0 }}>
                   <div style={{ fontSize:12, fontWeight:800, color:P }}>{s.price}</div>
                   <span style={{ fontSize:9, padding:'2px 7px', borderRadius:10, fontWeight:600, display:'inline-block', marginTop:3, background: s.status==='live'?'#FDEDEC':s.status==='sold'?'#E8F5E9':'#f0f0f0', color: s.status==='live'?P:s.status==='sold'?'#2E7D32':'#888' }}>
-                    {s.status==='live' ? '● En cours' : s.status==='sold' ? '✓ Vendu' : 'Terminé'}
+                    {s.status==='live' ? '● En vente' : s.status==='sold' ? '✓ Vendu' : 'Expiré'}
                   </span>
                 </div>
               </div>
@@ -244,7 +298,7 @@ export default function Sell({ goTab }: { goTab: (t: string) => void }) {
             </div>
             <div style={{ background:'#fff', border:'0.5px solid #f0eded', borderRadius:12, padding:13 }}>
               <div style={{ fontSize:11, fontWeight:600, color:'#aaa', marginBottom:7 }}>RÉSUMÉ</div>
-              {[['Articles vendus','7'],['Enchères actives','2'],['Taux de vente','87%'],['Note vendeur','⭐ 4.9']].map(([l,v]) => (
+              {[['Articles vendus','7'],['Articles en vente','2'],['Taux de vente','87%'],['Note vendeur','⭐ 4.9']].map(([l,v]) => (
                 <div key={l} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'5px 0', borderBottom:'0.5px solid #f5f0f0' }}>
                   <span style={{ color:'#bbb' }}>{l}</span>
                   <span style={{ fontWeight:700, color:P }}>{v}</span>
