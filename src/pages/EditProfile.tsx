@@ -49,7 +49,6 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
     if (!fullName.trim()) { alert('Le nom est obligatoire'); return }
     setLoading(true)
 
-    // Vérifier pseudo unique
     if (username) {
       const { data: existing } = await supabase
         .from('profiles')
@@ -116,12 +115,10 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
         {/* FORMULAIRE */}
         <div style={card}>
           <div style={cardTtl}>👤 Informations personnelles</div>
-
           <div style={fl}>
             <label style={lbl}>Nom complet *</label>
             <input value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Ex : Jean Dupont" style={inp}/>
           </div>
-
           <div style={fl}>
             <label style={lbl}>Pseudo</label>
             <div style={{ position:'relative' }}>
@@ -135,7 +132,6 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
             </div>
             <div style={{ fontSize:9, color:'#aaa', marginTop:3 }}>Lettres, chiffres et _ uniquement</div>
           </div>
-
           <div style={fl}>
             <label style={lbl}>Bio</label>
             <textarea

@@ -10,7 +10,13 @@ export default function Me({ goTab, onEditProfile }: { goTab: (t: string) => voi
   const [loading, setLoading] = useState(true)
   const [privacy, setPrivacy] = useState('public')
 
-  useEffect(() => { loadProfile() }, [])
+  useEffect(() => {
+    loadProfile()
+    // Recharger quand on revient sur la page
+    const handler = () => loadProfile()
+    window.addEventListener('focus', handler)
+    return () => window.removeEventListener('focus', handler)
+  }, [])
 
   async function loadProfile() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -19,7 +25,11 @@ export default function Me({ goTab, onEditProfile }: { goTab: (t: string) => voi
     const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     if (profile) { setProfile(profile); setPrivacy(profile.privacy || 'public') }
     const { data: items } = await supabase.from('items').select('views, favorites').eq('seller_id', user.id)
-    if (items) setStats({ articles: items.length, vues: items.reduce((s,i) => s+(i.views||0),0), favoris: items.reduce((s,i) => s+(i.favorites||0),0) })
+    if (items) setStats({
+      articles: items.length,
+      vues: items.reduce((s,i) => s+(i.views||0),0),
+      favoris: items.reduce((s,i) => s+(i.favorites||0),0)
+    })
     setLoading(false)
   }
 
@@ -39,9 +49,9 @@ export default function Me({ goTab, onEditProfile }: { goTab: (t: string) => voi
     await supabase.from('profiles').update({ show_real_name: newVal }).eq('id', user?.id)
   }
 
-  const privIcon  = privacy==='public' ? '🌍' : privacy==='abonnes' ? '👥' : '🔒'
-  const privLabel = privacy==='public' ? 'Public' : privacy==='abonnes' ? 'Abonnés' : 'Privé'
-  const initials  = profile?.full_name ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0,2) : user?.email?.[0]?.toUpperCase() || '?'
+  const privIcon    = privacy==='public' ? '🌍' : privacy==='abonnes' ? '👥' : '🔒'
+  const privLabel   = privacy==='public' ? 'Public' : privacy==='abonnes' ? 'Abonnés' : 'Privé'
+  const initials    = profile?.full_name ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0,2) : user?.email?.[0]?.toUpperCase() || '?'
   const displayName = profile?.username ? `@${profile.username}` : profile?.full_name || user?.email || 'Mon profil'
   const realName    = profile?.show_real_name !== false ? profile?.full_name : '·····'
 
