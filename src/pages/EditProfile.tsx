@@ -10,13 +10,18 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
   const [bio, setBio] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [avatarPreview, setAvatarPreview] = useState('')
+  const [coverUrl, setCoverUrl] = useState('')
+  const [coverPreview, setCoverPreview] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(true)
 
   useEffect(() => { loadProfile() }, [])
 
   async function loadProfile() {
+    setProfileLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     setUser(user)
@@ -27,7 +32,10 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
       setBio(data.bio || '')
       setAvatarUrl(data.avatar_url || '')
       setAvatarPreview(data.avatar_url || '')
+      setCoverUrl(data.cover_url || '')
+      setCoverPreview(data.cover_url || '')
     }
+    setProfileLoading(false)
   }
 
   async function handleAvatar(e: React.ChangeEvent<HTMLInputElement>) {
@@ -43,6 +51,21 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
     const { data } = supabase.storage.from('images').getPublicUrl(fileName)
     setAvatarUrl(data.publicUrl)
     setUploading(false)
+  }
+
+  async function handleCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => setCoverPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+    setUploadingCover(true)
+    const fileName = `cover-${user?.id}-${Date.now()}`
+    const { error } = await supabase.storage.from('images').upload(fileName, file, { upsert: true })
+    if (error) { alert('Erreur upload : ' + error.message); setUploadingCover(false); return }
+    const { data } = supabase.storage.from('images').getPublicUrl(fileName)
+    setCoverUrl(data.publicUrl)
+    setUploadingCover(false)
   }
 
   async function saveProfile() {
@@ -64,6 +87,7 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
       username: username.toLowerCase().trim(),
       bio: bio.trim(),
       avatar_url: avatarUrl || null,
+      cover_url: coverUrl || null,
     }).eq('id', user?.id)
 
     setLoading(false)
@@ -76,7 +100,13 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
 
   const initials = fullName
     ? fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2)
-    : '?'
+    : user?.email?.[0]?.toUpperCase() || '?'
+
+  if (profileLoading) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh' }}>
+      <div style={{ fontSize:13, color:'#aaa' }}>Chargement du profil…</div>
+    </div>
+  )
 
   return (
     <div style={{ paddingBottom:80, background:'#fafafa', minHeight:'100vh' }}>
@@ -91,25 +121,52 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
 
       <div style={{ padding:'16px 14px' }}>
 
-        {/* AVATAR */}
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginBottom:20 }}>
-          <div style={{ position:'relative', marginBottom:10 }}>
-            <div style={{ width:80, height:80, borderRadius:'50%', background:'#fff', border:`3px solid ${P}`, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, fontWeight:700, color:P }}>
-              {avatarPreview ? (
-                <img src={avatarPreview} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-              ) : initials}
-            </div>
-            {uploading && (
-              <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'rgba(0,0,0,.5)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#fff', fontWeight:700 }}>
-                Upload…
+        {/* IMAGE DE COUVERTURE */}
+        <div style={card}>
+          <div style={cardTtl}>🖼️ Image de couverture</div>
+          <div style={{ position:'relative', height:100, borderRadius:10, overflow:'hidden', background:`linear-gradient(135deg,${P},#b03028)`, marginBottom:8 }}>
+            {coverPreview && (
+              <img src={coverPreview} alt="cover" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+            )}
+            {uploadingCover && (
+              <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.5)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:12, fontWeight:700 }}>
+                Upload en cours…
               </div>
             )}
-            <label style={{ position:'absolute', bottom:0, right:0, width:26, height:26, background:P, borderRadius:'50%', border:'2px solid #fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, cursor:'pointer' }}>
-              📷
-              <input type="file" accept="image/*" onChange={handleAvatar} style={{ display:'none' }}/>
+            <label style={{ position:'absolute', bottom:8, right:8, background:'rgba(0,0,0,.5)', color:'#fff', border:'none', borderRadius:20, padding:'4px 10px', fontSize:10, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
+              📷 Changer
+              <input type="file" accept="image/*" onChange={handleCover} style={{ display:'none' }}/>
             </label>
           </div>
-          <div style={{ fontSize:11, color:'#aaa' }}>Appuyez sur 📷 pour changer la photo</div>
+          {!uploadingCover && coverUrl && <div style={{ fontSize:10, color:'#2E7D32', fontWeight:600 }}>✓ Image de couverture prête</div>}
+        </div>
+
+        {/* AVATAR */}
+        <div style={card}>
+          <div style={cardTtl}>📸 Photo de profil</div>
+          <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+            <div style={{ position:'relative' }}>
+              <div style={{ width:64, height:64, borderRadius:'50%', background:'#fff', border:`3px solid ${P}`, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, fontWeight:700, color:P }}>
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                ) : initials}
+              </div>
+              {uploading && (
+                <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'rgba(0,0,0,.5)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'#fff', fontWeight:700 }}>
+                  Upload…
+                </div>
+              )}
+              <label style={{ position:'absolute', bottom:0, right:0, width:22, height:22, background:P, borderRadius:'50%', border:'2px solid #fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, cursor:'pointer' }}>
+                📷
+                <input type="file" accept="image/*" onChange={handleAvatar} style={{ display:'none' }}/>
+              </label>
+            </div>
+            <div>
+              <div style={{ fontSize:12, fontWeight:600, color:'#111' }}>Photo de profil</div>
+              <div style={{ fontSize:10, color:'#aaa', marginTop:2 }}>Appuyez sur 📷 pour changer</div>
+              {!uploading && avatarUrl && <div style={{ fontSize:10, color:'#2E7D32', marginTop:3, fontWeight:600 }}>✓ Photo prête</div>}
+            </div>
+          </div>
         </div>
 
         {/* FORMULAIRE */}
@@ -151,8 +208,8 @@ export default function EditProfile({ goBack }: { goBack: () => void }) {
           </div>
         )}
 
-        <button onClick={saveProfile} disabled={loading || uploading} style={{ width:'100%', padding:13, background: loading||uploading ? '#ccc' : P, color:'#fff', border:'none', borderRadius:20, fontSize:14, fontWeight:800, cursor: loading||uploading ? 'not-allowed' : 'pointer' }}>
-          {loading ? 'Sauvegarde…' : '💾 Sauvegarder'}
+        <button onClick={saveProfile} disabled={loading || uploading || uploadingCover} style={{ width:'100%', padding:13, background: loading||uploading||uploadingCover ? '#ccc' : P, color:'#fff', border:'none', borderRadius:20, fontSize:14, fontWeight:800, cursor: loading||uploading||uploadingCover ? 'not-allowed' : 'pointer' }}>
+          {loading ? 'Sauvegarde…' : uploading||uploadingCover ? 'Upload…' : '💾 Sauvegarder'}
         </button>
 
       </div>

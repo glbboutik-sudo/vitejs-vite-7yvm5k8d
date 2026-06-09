@@ -3,7 +3,7 @@ import { supabase } from '../supabase'
 
 const P = '#D94F45'
 
-export default function Me({ goTab, onEditProfile }: { goTab: (t: string) => void, onEditProfile: () => void }) {
+export default function Me({ goTab, onEditProfile, onMessagesClick }: { goTab: (t: string) => void, onEditProfile: () => void, onMessagesClick: () => void }) {
   const [profile, setProfile] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [stats, setStats] = useState({ articles: 0, vues: 0, favoris: 0 })
@@ -12,7 +12,6 @@ export default function Me({ goTab, onEditProfile }: { goTab: (t: string) => voi
 
   useEffect(() => {
     loadProfile()
-    // Recharger quand on revient sur la page
     const handler = () => loadProfile()
     window.addEventListener('focus', handler)
     return () => window.removeEventListener('focus', handler)
@@ -65,22 +64,35 @@ export default function Me({ goTab, onEditProfile }: { goTab: (t: string) => voi
     <div style={{ paddingBottom:80 }}>
 
       {/* COUVERTURE */}
-      <div style={{ height:110, background:`linear-gradient(135deg,${P},#b03028)`, position:'relative' }}>
-        <button onClick={onEditProfile} style={{ position:'absolute', bottom:7, right:10, background:'rgba(0,0,0,.45)', border:'none', borderRadius:20, padding:'4px 10px', fontSize:10, fontWeight:600, color:'#fff', cursor:'pointer' }}>
-          📷 Modifier
-        </button>
-        <div style={{ position:'absolute', bottom:-26, left:14 }}>
-          <div onClick={onEditProfile} style={{ width:52, height:52, borderRadius:'50%', background:'#fff', border:'3px solid #fff', boxShadow:'0 2px 8px rgba(0,0,0,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:700, color:P, cursor:'pointer', position:'relative', overflow:'hidden' }}>
-            {profile?.avatar_url ? <img src={profile.avatar_url} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : initials}
+      <div style={{ position:'relative' }}>
+        <div style={{ height:120, overflow:'hidden', position:'relative' }}>
+          {profile?.cover_url ? (
+            <img src={profile.cover_url} alt="cover" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+          ) : (
+            <div style={{ width:'100%', height:'100%', background:`linear-gradient(135deg,${P},#b03028)` }}/>
+          )}
+          <button onClick={onEditProfile} style={{ position:'absolute', bottom:8, right:10, background:'rgba(0,0,0,.5)', border:'none', borderRadius:20, padding:'4px 10px', fontSize:10, fontWeight:600, color:'#fff', cursor:'pointer' }}>
+            📷 Modifier
+          </button>
+        </div>
+        <div style={{ position:'absolute', top:94, left:14, zIndex:10 }}>
+          <div onClick={onEditProfile} style={{ width:56, height:56, borderRadius:'50%', background:'#fff', border:'3px solid #fff', boxShadow:'0 2px 8px rgba(0,0,0,.2)', overflow:'hidden', cursor:'pointer', position:'relative' }}>
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+            ) : (
+              <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:700, color:P }}>
+                {initials}
+              </div>
+            )}
             <div style={{ position:'absolute', bottom:0, right:0, width:16, height:16, background:P, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, border:'2px solid #fff' }}>📷</div>
           </div>
         </div>
       </div>
 
       {/* INFOS */}
-      <div style={{ padding:'32px 14px 10px', background:'#fafafa' }}>
+      <div style={{ padding:'34px 14px 10px', background:'#fafafa' }}>
         <div style={{ fontSize:16, fontWeight:800, color:'#111' }}>{displayName}</div>
-        {profile?.username && profile?.full_name && (
+        {profile?.full_name && (
           <div style={{ fontSize:10, color:'#aaa', marginTop:2 }}>
             {realName} · Membre depuis {new Date(user?.created_at || '').toLocaleDateString('fr-FR', { month:'long', year:'numeric' })}
           </div>
@@ -113,7 +125,7 @@ export default function Me({ goTab, onEditProfile }: { goTab: (t: string) => voi
           { ico:'📅', lbl:'Mes lives',       sub:'Programmer un live',                                  action: ()=>goTab('sell') },
           { ico:'🎟️', lbl:'Coupons',         sub:'Gérer mes coupons',                                   action: ()=>goTab('sell') },
           { ico:'🎁', lbl:'Parrainage',      sub:'Invitez vos amis',                                    action: ()=>goTab('sell') },
-          { ico:'💬', lbl:'Messages',        sub:'Vos conversations',                                   action: ()=>{} },
+          { ico:'💬', lbl:'Messages',        sub:'Vos conversations',                                   action: onMessagesClick },
           { ico:'✏️', lbl:'Modifier profil', sub:'Nom, pseudo, bio, photo',                             action: onEditProfile },
           { ico:'🔒', lbl:'Confidentialité', sub:privLabel,                                             action: togglePrivacy },
           { ico:'⚙️', lbl:'Paramètres',      sub:'Compte & sécurité',                                   action: ()=>{} },
